@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+import argparse
+import re
+
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('molecule',
+                    nargs=1,
+                    help='need a molecule chemical formula (ex: "Mg(OH)2")')
+
+molecule_str = parser.parse_args().molecule[0]
+
+def parse_molecule(molecule_str):
+    array = parse_priority(molecule_str)
+    return array
+
+
+def parse_priority(molecule_str):
+    matcher = re.compile(r"([^\[\]]*)\[(.*)\]([0-9]+)?|([^\(\)]*)\((.*)\)([0-9]*)")
+    re_result = matcher.search(molecule_str)
+    if re_result:
+        return push_in_array(re_result)
+
+def convert_to_array(contnair):
+    array = []
+    for elem in contnair:
+        if elem != None:
+            array.append(elem)
+    return array
+
+def push_in_array(re_result):
+    array = []
+    data = convert_to_array(re_result.groups())
+    array.append(parse_little_molecule(data[0]))
+    if len(data) >= 2:
+        result = parse_priority(data[1])
+        if not result:
+            result = parse_little_molecule(data[1])
+        print result
+        print data
+        if result and len(data) == 3:
+            factor = int(data[2])
+            for key in result:
+                print key
+                result[key] *= factor
+        array.append(result)
+    return array
+
+
+def parse_little_molecule(molecule_str):
+    matcher = re.compile(r'(([A-Z][a-z]?)([0-9]+?)*)')
+    result = {}
+    for match in matcher.finditer(molecule_str):
+        key =  get_key(match)
+        value = get_value(match)
+        if not result.has_key(key):
+            result[key] = value
+        else:
+            result[key] += value
+    if result:
+        return result
+    else:
+        return molecule_str
+
+def get_key(match):
+    return str(match.groups()[1])
+
+def get_value(match):
+    if match.groups()[2]:
+        return int(match.groups()[2])
+    else:
+        return 1
+
+print parse_molecule(molecule_str)
