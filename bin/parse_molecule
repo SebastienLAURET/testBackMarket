@@ -10,56 +10,61 @@ parser.add_argument('molecule',
 molecule_str = parser.parse_args().molecule[0]
 
 def parse_molecule(molecule_str):
-    array = parse_priority(molecule_str)
-    return array
+    molecule_arr = parse_molecule_to_array(molecule_str)
+    return merge_dict(molecule_arr)
 
+def merge_dict(molecule_arr):
+    molecule_dict = {}
+    for elem in molecule_arr:
+        print elem
+        for key in elem:
+            print key
+            if molecule_dict.has_key(key):
+                molecule_dict[key] += elem[key]
+            else:
+                molecule_dict[key] = elem[key]
+    return molecule_dict
 
-def parse_priority(molecule_str):
+def parse_molecule_to_array(molecule_str, factor = 1):
     matcher = re.compile(r"([^\[\]]*)\[(.*)\]([0-9]+)?|([^\(\)]*)\((.*)\)([0-9]*)")
     re_result = matcher.search(molecule_str)
     if re_result:
-        return push_in_array(re_result)
+        return add_dict_in_arr(re_result, factor)
+    else:
+        return parse_molecule_to_dict(molecule_str, factor)
 
-def convert_to_array(contnair):
+def add_dict_in_arr(re_result, factor):
+    molecule_arr = []
+    result = remove_none_elem(re_result.groups())
+    molecule_arr += parse_molecule_to_dict(result[0], factor)
+    if len(result) < 3 or result[2] == '':
+        molecule_arr += parse_molecule_to_array(result[1], factor)
+    else:
+        molecule_arr += parse_molecule_to_array(result[1], factor * int(result[2]))
+    return molecule_arr
+
+def remove_none_elem(contnair):
     array = []
     for elem in contnair:
         if elem != None:
             array.append(elem)
     return array
 
-def push_in_array(re_result):
+def parse_molecule_to_dict(molecule_str, factor):
+    matcher = re.compile(r'(([A-Z][a-z]?)([0-9]+?)*)')
+    re_result = matcher.finditer(molecule_str)
     array = []
-    data = convert_to_array(re_result.groups())
-    array.append(parse_little_molecule(data[0]))
-    if len(data) >= 2:
-        result = parse_priority(data[1])
-        if not result:
-            result = parse_little_molecule(data[1])
-        print result
-        print data
-        if result and len(data) == 3:
-            factor = int(data[2])
-            for key in result:
-                print key
-                result[key] *= factor
-        array.append(result)
+    for match in re_result:
+        array.append(set_data_in_dict(match, factor))
     return array
 
-
-def parse_little_molecule(molecule_str):
-    matcher = re.compile(r'(([A-Z][a-z]?)([0-9]+?)*)')
+def set_data_in_dict(match, factor):
     result = {}
-    for match in matcher.finditer(molecule_str):
-        key =  get_key(match)
-        value = get_value(match)
-        if not result.has_key(key):
-            result[key] = value
-        else:
-            result[key] += value
-    if result:
-        return result
-    else:
-        return molecule_str
+    key =  get_key(match)
+    value = get_value(match) * factor
+    result[key] = value
+
+    return result
 
 def get_key(match):
     return str(match.groups()[1])
